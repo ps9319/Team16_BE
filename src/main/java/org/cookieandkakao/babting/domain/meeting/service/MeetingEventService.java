@@ -10,7 +10,6 @@ import org.cookieandkakao.babting.domain.meeting.dto.request.ConfirmMeetingGetRe
 import org.cookieandkakao.babting.domain.meeting.dto.request.MeetingEventCreateRequest;
 import org.cookieandkakao.babting.domain.meeting.dto.request.MeetingTimeCreateRequest;
 import org.cookieandkakao.babting.domain.meeting.dto.response.MeetingPersonalEventGetResponse;
-import org.cookieandkakao.babting.domain.meeting.dto.response.TimeAvailableGetResponse;
 import org.cookieandkakao.babting.domain.meeting.entity.Meeting;
 import org.cookieandkakao.babting.domain.meeting.entity.MeetingEvent;
 import org.cookieandkakao.babting.domain.meeting.entity.MemberMeeting;
@@ -32,25 +31,20 @@ public class MeetingEventService {
     private final FoodRepositoryService foodRepositoryService;
 
     private final MeetingEventRepository meetingEventRepository;
-    private final MeetingTimeCalculationService meetingTimeCalculationService;
     private static final List<Integer> DEFAULT_REMINDER_TIMES = List.of(15, 30);
 
     public MeetingEventService(MemberService memberService,
         MeetingService meetingService, MeetingValidationService meetingValidationService,
         MeetingEventCreateService meetingEventCreateService,
-        FoodRepositoryService foodRepositoryService, MeetingEventRepository meetingEventRepository,
-        MeetingTimeCalculationService meetingTimeCalculationService) {
+        FoodRepositoryService foodRepositoryService, MeetingEventRepository meetingEventRepository) {
         this.memberService = memberService;
         this.meetingService = meetingService;
         this.meetingValidationService = meetingValidationService;
         this.meetingEventCreateService = meetingEventCreateService;
         this.foodRepositoryService = foodRepositoryService;
         this.meetingEventRepository = meetingEventRepository;
-        this.meetingTimeCalculationService = meetingTimeCalculationService;
     }
 
-
-    // 모임 확정
     public void confirmMeeting(Long memberId, Long meetingId,
         ConfirmMeetingGetRequest confirmMeetingGetRequest) {
         Member member = memberService.findMember(memberId);
@@ -89,11 +83,6 @@ public class MeetingEventService {
             DEFAULT_REMINDER_TIMES);
     }
 
-    public TimeAvailableGetResponse findAvailableTime(Long meetingId) {
-        return meetingTimeCalculationService.findAvailableTime(meetingId);
-    }
-
-    // 모임별 개인 일정 조회
     public MeetingPersonalEventGetResponse findMeetingPersonalEvent(Long meetingId, Long memberId) {
         List<MeetingEvent> meetingEvents = findAllMeetingEvent(meetingId, memberId);
         List<TimeGetResponse> meetingPersonalEventTimes = meetingEvents.stream()
@@ -101,7 +90,7 @@ public class MeetingEventService {
         return new MeetingPersonalEventGetResponse(meetingPersonalEventTimes);
     }
 
-    public List<MeetingEvent> findAllMeetingEvent(Long meetingId, Long memberId) {
+    private List<MeetingEvent> findAllMeetingEvent(Long meetingId, Long memberId) {
         Meeting meeting = meetingService.findMeeting(meetingId);
         Member member = memberService.findMember(memberId);
         MemberMeeting memberMeeting = meetingService.findMemberMeeting(member, meeting);
