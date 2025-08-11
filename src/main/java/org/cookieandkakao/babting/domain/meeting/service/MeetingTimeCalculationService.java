@@ -2,6 +2,7 @@ package org.cookieandkakao.babting.domain.meeting.service;
 
 import jakarta.transaction.Transactional;
 import java.time.LocalDateTime;
+import java.time.ZonedDateTime;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
@@ -50,7 +51,8 @@ public class MeetingTimeCalculationService {
         List<TimeGetResponse> allTimes = joinedMemberIds.stream()
             .flatMap(memberId -> {
                 List<TimeGetResponse> calendarTimes = talkCalendarService
-                    .getUpdatedEventList(from.toString(), to.toString(), memberId)
+                    .getUpdatedEventList(from.toString().concat(":00Z"), to.toString().concat(":00Z"),
+                        memberId)
                     .stream()
                     .map(EventGetResponse::time)
                     .toList();
@@ -66,7 +68,7 @@ public class MeetingTimeCalculationService {
 
         // 시간대 정렬 (시작 시간을 기준으로 오름차순 정렬)
         List<TimeGetResponse> sortedTimes = allTimes.stream()
-            .sorted(Comparator.comparing(time -> LocalDateTime.parse(time.startAt())))
+            .sorted(Comparator.comparing(time -> ZonedDateTime.parse(time.startAt())))
             .toList();
 
         // 겹치는 시간 병합
@@ -87,7 +89,6 @@ public class MeetingTimeCalculationService {
         }
 
         TimeSlot currentTime = TimeSlot.toTimeSlot(times.getFirst());
-
 
         for (int i = 1; i < times.size(); i++) {
             TimeSlot next = TimeSlot.toTimeSlot(times.get(i));
@@ -127,7 +128,7 @@ public class MeetingTimeCalculationService {
 
         // 첫 번째 시간대 이전의 빈 시간 확인
         // => 검색 시작일 ~ mergedTime 첫번째 일정의 시작시간까지 빈 시간
-        if (from.isBefore(mergedTimes.getFirst().startAt())) {
+        if (!mergedTimes.isEmpty() && from.isBefore(mergedTimes.getFirst().startAt())) {
             availableTimes.add(new TimeSlot(
                 from,
                 mergedTimes.getFirst().startAt(),
@@ -153,7 +154,7 @@ public class MeetingTimeCalculationService {
         }
 
         // 마지막 시간대 이후의 빈 시간 확인
-        if (to.isAfter(mergedTimes.getLast().endAt())) {
+        if (!mergedTimes.isEmpty() && to.isAfter(mergedTimes.getLast().endAt())) {
             availableTimes.add(new TimeSlot(
                 mergedTimes.getLast().endAt(),
                 to,

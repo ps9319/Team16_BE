@@ -1,4 +1,4 @@
-INSERT IGNORE INTO food_category (food_category_id, name)
+INSERT INTO food_category (food_category_id, name)
 VALUES (1, '한식'),
        (2, '중식'),
        (3, '일식'),
@@ -8,9 +8,10 @@ VALUES (1, '한식'),
        (7, '간식, 카페'),
        (8, '패스트푸드'),
        (9, '고기, 회'),
-       (10, '기타');
+       (10, '기타')
+ON DUPLICATE KEY UPDATE name = name;
 
-INSERT IGNORE INTO food (food_category_id, name)
+INSERT INTO food (food_category_id, name)
 VALUES (1, '김치찌개'),
        (1, '떡갈비'),
        (1, '파전'),
@@ -455,4 +456,5 @@ VALUES (1, '김치찌개'),
 
        (10, '뷔페'),
        (10, '패밀리 레스토랑'),
-       (10, '술집');
+       (10, '술집')
+ON DUPLICATE KEY UPDATE name = name;

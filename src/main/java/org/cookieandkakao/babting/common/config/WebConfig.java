@@ -24,8 +24,8 @@ public class WebConfig implements WebMvcConfigurer {
     @Override
     public void addCorsMappings(CorsRegistry registry) {
         registry.addMapping("/api/**")
-            .allowedOriginPatterns("https://www.babting.com")
-            .allowedMethods("GET", "POST", "PUT", "DELETE")
+            .allowedOriginPatterns("https://www.babting.com", "https://api.babting.com")
+            .allowedMethods("GET", "POST", "PUT", "DELETE", "OPTIONS")
             .allowedHeaders("Content-Type", "Authorization")
             .exposedHeaders("Authorization", "Location")
             .maxAge(1800)

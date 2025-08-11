@@ -2,6 +2,7 @@ package org.cookieandkakao.babting.domain.meeting.service;
 
 import jakarta.transaction.Transactional;
 import java.util.List;
+import java.util.Optional;
 import java.util.stream.Collectors;
 import org.cookieandkakao.babting.domain.meeting.dto.request.MeetingCreateRequest;
 import org.cookieandkakao.babting.domain.meeting.dto.request.MeetingJoinCreateRequest;
@@ -20,6 +21,7 @@ import org.cookieandkakao.babting.domain.meeting.exception.membermeeting.MemberM
 import org.cookieandkakao.babting.domain.meeting.repository.LocationRepository;
 import org.cookieandkakao.babting.domain.meeting.repository.MeetingRepository;
 import org.cookieandkakao.babting.domain.meeting.repository.MemberMeetingRepository;
+import org.cookieandkakao.babting.domain.member.dto.MemberProfileGetResponse;
 import org.cookieandkakao.babting.domain.member.entity.Member;
 import org.cookieandkakao.babting.domain.member.service.MemberService;
 import org.springframework.stereotype.Service;
@@ -45,13 +47,13 @@ public class MeetingService {
         this.meetingEventCreateService = meetingEventCreateService;
     }
 
-    public void createMeeting(Long memberId, MeetingCreateRequest meetingCreateRequest){
+    public Long createMeeting(Long memberId, MeetingCreateRequest meetingCreateRequest){
         Member member = memberService.findMember(memberId);
         Meeting meeting = meetingCreateRequest.toEntity();
         Location baseLocation = meetingCreateRequest.baseLocation().toEntity();
         locationRepository.save(baseLocation);
-        meetingRepository.save(meeting);
         memberMeetingRepository.save(new MemberMeeting(member, meeting, true));
+        return meetingRepository.save(meeting).getMeetingId();
     }
 
     public void updateMeeting(Long memberId, Long meetingId, MeetingUpdateRequest meetingUpdateRequest) {
@@ -74,21 +76,25 @@ public class MeetingService {
         meeting.updateEndTime(meetingUpdateRequest.endTime());
     }
 
-    // 모임 참가(초대받은사람)
-    public void joinMeeting(Long memberId, Long meetingId, MeetingJoinCreateRequest meetingJoinCreateRequest){
+    // 모임 참가(초대받은 사람)
+    public void joinMeeting(Long memberId, Long meetingId, MeetingJoinCreateRequest meetingJoinCreateRequest) {
         Member member = memberService.findMember(memberId);
         Meeting meeting = findMeeting(meetingId);
 
-        boolean isJoinMeeting = memberMeetingRepository.existsByMemberAndMeeting(member, meeting);
-        if (isJoinMeeting){
-            throw new MeetingAlreadyJoinException("이미 모임에 참가한 상태입니다.");
+        Optional<MemberMeeting> existingMemberMeeting = memberMeetingRepository.findByMemberAndMeeting(member, meeting);
+
+        if (existingMemberMeeting.isPresent()) {
+            MemberMeeting checkMemberMeeting = existingMemberMeeting.get();
+            if (!checkMemberMeeting.isHost()) {
+                throw new MeetingAlreadyJoinException("이미 모임에 참가한 상태입니다.");
+            }
+            meetingEventCreateService.saveMeetingAvoidTime(checkMemberMeeting, meetingJoinCreateRequest.times());
+        } else {
+            MemberMeeting memberMeeting = memberMeetingRepository.save(new MemberMeeting(member, meeting, false));
+            meetingEventCreateService.saveMeetingAvoidTime(memberMeeting, meetingJoinCreateRequest.times());
         }
-
-        MemberMeeting memberMeeting = memberMeetingRepository.save(new MemberMeeting(member, meeting, false));
-        meetingEventCreateService.saveMeetingAvoidTime(memberMeeting, meetingJoinCreateRequest.times());
-
-
     }
+
 
     public void exitMeeting(Long memberId, Long meetingId){
         Member member = memberService.findMember(memberId);
@@ -152,4 +158,18 @@ public class MeetingService {
             .map(memberMeeting -> memberMeeting.getMember().getMemberId())
             .toList();
     }
+
+    public List<MemberProfileGetResponse> getMeetingParticipants(Long meetingId) {
+        List<MemberMeeting> memberMeetings = memberMeetingRepository.findMemberMeetingsByMeetingId(meetingId);
+        return memberMeetings.stream()
+                .map(mm -> new MemberProfileGetResponse(
+                        mm.getMember().getMemberId(),
+                        mm.getMember().getNickname(),
+                        mm.getMember().getThumbnailImageUrl(),
+                        mm.getMember().getProfileImageUrl()
+                ))
+                .collect(Collectors.toList());
+    }
 }
+
+

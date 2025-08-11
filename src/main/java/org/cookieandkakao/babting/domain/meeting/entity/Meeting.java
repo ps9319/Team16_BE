@@ -1,5 +1,6 @@
 package org.cookieandkakao.babting.domain.meeting.entity;
 
+import jakarta.persistence.CascadeType;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;
@@ -20,7 +21,7 @@ public class Meeting {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long meetingId;
 
-    @OneToOne
+    @OneToOne(cascade = CascadeType.PERSIST)
     @JoinColumn(name = "base_location_id")
     private Location baseLocation;
 
@@ -68,6 +69,10 @@ public class Meeting {
 
     public void confirmFood (Food food) {
         this.confirmedFood = food;
+    }
+
+    public Long getMeetingId() {
+        return meetingId;
     }
 
     public LocalDateTime getConfirmDateTime() {
